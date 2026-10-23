@@ -1,27 +1,15 @@
 #!/bin/bash
 #=================================================
-# diy-part1.sh - 更新 feeds 之前执行
-# 作用：修改 YK-L1c DTS 适配 16M Flash
+# diy-part1.sh - ImmortalWrt 24.10 YK-L1c 16M硬改 DTS补丁
+# 注意：ImmortalWrt 设备dts名字是 youku_yk_l1c.dts
 #=================================================
 
-# 修改 youku_yk-l1c 的 DTS，适配 16M Flash
-DTS_FILE="target/linux/ramips/dts/youku_yk-l1c.dts"
+DTS_FILE="target/linux/ramips/dts/youku_yk_l1c.dts"
 
 if [ -f "$DTS_FILE" ]; then
-    echo "===== 修改 YK-L1c DTS 适配 16M Flash ====="
-    
-    # 备份原文件
+    echo "===== 找到DTS文件，开始修改 YK-L1c 适配16M Flash ====="
     cp "$DTS_FILE" "${DTS_FILE}.bak"
-    
-    # 用 sed 替换 flash 节点的 reg 和分区
-    # 16M Flash: 0x1000000
-    # 分区布局：
-    #   uboot:     0x000000 - 0x030000  (192KB)
-    #   uboot-env: 0x030000 - 0x040000  (64KB)
-    #   firmware:  0x040000 - 0x7F0000 (7.75MB)
-    #   art:       0x7F0000 - 0x800000  (64KB, 只读)
-    #   overlay:   0x800000 - 0x1000000 (8MB, 新增)
-    
+
     cat > "$DTS_FILE" << 'DTS_EOF'
 /dts-v1/;
 
@@ -62,7 +50,6 @@ if [ -f "$DTS_FILE" ]; then
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <10000000>;
-
 		m25p,fast-read;
 
 		partitions {
@@ -79,7 +66,6 @@ if [ -f "$DTS_FILE" ]; then
 			partition@30000 {
 				label = "u-boot-env";
 				reg = <0x30000 0x10000>;
-				read-only;
 			};
 
 			factory: partition@40000 {
@@ -127,8 +113,10 @@ if [ -f "$DTS_FILE" ]; then
 	ralink,mtd-eeprom = <&art 0x0>;
 };
 DTS_EOF
-    
-    echo "DTS 修改完成"
+
+    echo "✅ DTS 修改完成 youku_yk_l1c.dts"
 else
-    echo "警告：找不到 $DTS_FILE"
+    echo "❌ 错误：$DTS_FILE 不存在！"
+    ls target/linux/ramips/dts/ | grep yk
+    exit 1
 fi
