@@ -1,10 +1,10 @@
 #!/bin/bash
 #=================================================
 # diy-part1.sh - ImmortalWrt 24.10 YK-L1c 16M硬改 DTS补丁
-# 注意：ImmortalWrt 设备dts名字是 youku_yk_l1c.dts
+# 真实DTS文件名：mt7620a_youku_yk-l1c.dts
 #=================================================
 
-DTS_FILE="target/linux/ramips/dts/youku_yk_l1c.dts"
+DTS_FILE="target/linux/ramips/dts/mt7620a_youku_yk-l1c.dts"
 
 if [ -f "$DTS_FILE" ]; then
     echo "===== 找到DTS文件，开始修改 YK-L1c 适配16M Flash ====="
@@ -114,7 +114,7 @@ if [ -f "$DTS_FILE" ]; then
 };
 DTS_EOF
 
-    echo "✅ DTS 修改完成 youku_yk_l1c.dts"
+    echo "✅ DTS 修改完成 mt7620a_youku_yk-l1c.dts"
 else
     echo "❌ 错误：$DTS_FILE 不存在！"
     ls target/linux/ramips/dts/ | grep yk
