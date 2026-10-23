@@ -18,7 +18,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: openwrt-24.10
+  REPO_BRANCH: v24.10.6
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -27,6 +27,7 @@ env:
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  SRC_DIR: /workdir/openwrt
 
 jobs:
   build:
@@ -53,44 +54,50 @@ jobs:
         run: |
           git clone --depth 1 -b $REPO_BRANCH $REPO_URL openwrt
 
-      - name: Load custom feeds
+      - name: Load custom feeds & Run diy-part1.sh
+        working-directory: ${{ env.SRC_DIR }}
         run: |
-          [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-          chmod +x $DIY_P1_SH
-          cd openwrt
+          [ -e $GITHUB_WORKSPACE/$FEEDS_CONF ] && cp $GITHUB_WORKSPACE/$FEEDS_CONF feeds.conf.default
+          chmod +x $GITHUB_WORKSPACE/$DIY_P1_SH
           $GITHUB_WORKSPACE/$DIY_P1_SH
 
       - name: Update feeds
-        run: cd openwrt && ./scripts/feeds update -a
+        working-directory: ${{ env.SRC_DIR }}
+        run: |
+          ./scripts/feeds update -a
 
       - name: Install feeds
-        run: cd openwrt && ./scripts/feeds install -a
-
-      - name: Load custom configuration
+        working-directory: ${{ env.SRC_DIR }}
         run: |
-          [ -e files ] && mv files openwrt/files
-          [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-          chmod +x $DIY_P2_SH
-          cd openwrt
+          ./scripts/feeds install -a
+
+      - name: Load custom configuration & Run diy-part2.sh
+        working-directory: ${{ env.SRC_DIR }}
+        run: |
+          [ -d $GITHUB_WORKSPACE/files ] && cp -r $GITHUB_WORKSPACE/files ./
+          [ -e $GITHUB_WORKSPACE/$CONFIG_FILE ] && cp $GITHUB_WORKSPACE/$CONFIG_FILE .config
+          chmod +x $GITHUB_WORKSPACE/$DIY_P2_SH
           $GITHUB_WORKSPACE/$DIY_P2_SH
 
       - name: Download package
-        run: cd openwrt && make download -j8
+        working-directory: ${{ env.SRC_DIR }}
+        run: |
+          make download -j8
 
       - name: Compile firmware
+        working-directory: ${{ env.SRC_DIR }}
         run: |
-          cd openwrt
           make -j$(nproc) || make -j2 || make -j1 V=s
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@main
         with:
           name: ImmortalWrt-24.10-YK-L1c-16M-USB-Print-Samba
-          path: openwrt/bin/targets/*/*/*.bin
+          path: ${{ env.SRC_DIR }}/bin/targets/*/*/*.bin
 
       - name: Upload to Release
         uses: softprops/action-gh-release@master
         if: env.GITHUB_TOKEN != '' && env.UPLOAD_RELEASE == 'true' && !cancelled()
         with:
           tag_name: auto-${{ github.run_number }}
-          files: openwrt/bin/targets/*/*/*.bin
+          files: ${{ env.SRC_DIR }}/bin/targets/*/*/*.bin
